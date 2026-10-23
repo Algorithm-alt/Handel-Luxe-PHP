@@ -1,0 +1,58 @@
+RewriteEngine On
+
+# ---------------------------------------------------------------------------
+# Security headers (mod_headers). X-Content-Type-Options, Referrer-Policy and
+# framing protection are enforced now. The full Content-Security-Policy is
+# Report-Only because the site still contains inline <script> blocks and
+# inline event handlers; enforcing it today would break checkout and admin.
+# The small enforcing policy below only covers directives that already hold
+# (object/base/frame), so it is safe to turn on immediately.
+#
+# HSTS stays disabled until the production HTTPS hostname and its subdomains
+# are verified. Enabling it early can lock users out of a domain that is not
+# fully HTTPS; see DEPLOY.md "Canonical URL and security headers".
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Frame-Options "DENY"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(self)"
+    Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    Header always set Content-Security-Policy-Report-Only "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://js.paystack.co https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.paystack.co https://checkout.paystack.com https://checkout.paystack.co https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-src https://checkout.paystack.com https://checkout.paystack.co https://js.paystack.co; media-src 'self'"
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# Regression tests are source, not content: never serve them over HTTP.
+RewriteRule ^tests(/|$) - [F,L]
+
+# Never serve installer/test artifacts from the public web root. Remove
+# setup.php from production deployments as an additional precaution.
+<FilesMatch "^(setup\.php|setup-allow\.txt|test-checkout\.html|history\.txt|DEPLOY\.md|PROJECT_REPORT\.md|AUDIT-REPORT\.md)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Allow direct access to index.php and api/index.php
+RewriteRule ^(index\.php|api/index\.php)$ - [L]
+
+# Rewrite clean asset paths into public/
+RewriteRule ^css/(.*)$ public/css/$1 [L]
+RewriteRule ^js/(.*)$ public/js/$1 [L]
+RewriteRule ^images/(.*)$ public/images/$1 [L]
+RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+# Serve actual files/dirs first
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route API requests to api/index.php
+RewriteRule ^api/(.*)$ api/index.php?route=$1 [QSA,L]
+
+# Route page requests to root index.php
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]

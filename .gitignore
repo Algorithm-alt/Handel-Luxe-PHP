@@ -1,0 +1,24 @@
+# Credentials. The only files holding live keys — see config/secrets.example.php
+# and config/.env.example for the templates a fresh clone should copy instead.
+config/secrets.php
+config/.env
+
+# Local unlock file for the installer (see setup.php). Must never ship.
+setup-allow.txt
+
+# Runtime uploads from the admin panel. These are content, not source;
+# deploy them separately (rsync/FTP) or they will be lost on a fresh clone.
+public/uploads/
+
+# Local scratch
+test-checkout.html
+
+# Internal deployment log - contains live hosting credentials, never publish.
+history.txt
+
+# Internal security/audit reports - default credentials and open findings.
+AUDIT-REPORT.md
+PROJECT_REPORT.md
+
+# Local agent tooling.
+.claude/

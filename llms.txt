@@ -1,0 +1,38 @@
+# Handel Luxe GH
+
+> Handel Luxe GH is a Ghanaian online fragrance store selling authentic perfumes, body sprays, deodorants and gift sets, with nationwide delivery across Ghana.
+
+## Products
+
+- 60+ fragrances across 6 categories: Men's, Women's, Unisex, Body Mists & Sprays, Gift Sets, and Deodorants & Roll-Ons.
+- Prices in Ghana cedis, from GH₵10 to GH₵450.
+- All products sourced from authorized suppliers.
+- Product pages: /product/&lt;id&gt; (e.g. /product/15 for Lattafa Khamrah Qahwa).
+- Browsing: /products, filterable by category (?category=1-6), sortable by price, searchable.
+
+## Ordering
+
+- Guest checkout available; no account required.
+- Payment: online via Paystack (card or mobile money) or cash on delivery.
+- Delivery zones: Swedru Central (free), Greater Accra / Central Region (GH₵20), Other Regions (GH₵50), Self-Collection at the Swedru store (free). Fees are set in the admin dashboard, so /faq carries the current list.
+- Order tracking: /track-order with order number and checkout email; registered customers see order status under My Orders.
+
+## Policies
+
+- Returns accepted for wrong, damaged/leaking, or inauthentic items; contact within 48 hours of delivery.
+- Refunds processed after the returned item is inspected.
+- Full policy pages: /privacy, /terms, /refund, /cookies.
+
+## Contact
+
+- Phone/WhatsApp: 0542332244, 0549986486
+- Email: drdehandel@gmail.com
+- Response within 24 hours, usually same-day during business hours.
+- Contact form: /contact
+
+## Key pages
+
+- Home: /
+- Shop: /products
+- FAQ: /faq
+- About: /about

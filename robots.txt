@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /setup.php
+Disallow: /checkout
+Disallow: /payment-verify
+Disallow: /reset-password
+Disallow: /guest-order
+Disallow: /forgot-password
+
+Sitemap: http://localhost/handel-luxe-php/sitemap.xml

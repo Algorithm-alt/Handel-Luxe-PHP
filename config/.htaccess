@@ -1,0 +1,18 @@
+# This directory holds credentials (config/secrets.php). It is never meant
+# to be reachable over HTTP — the app only ever include()s these files.
+#
+# While PHP is executing, a direct request for a .php file here returns
+# nothing anyway. This rule covers the case where PHP stops executing for
+# any reason (handler misconfiguration, upgrade, bad mime mapping) and the
+# files would otherwise be served as plain text.
+
+<IfModule mod_authz_core.c>
+    # Apache 2.4+
+    Require all denied
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    # Apache 2.2
+    Order allow,deny
+    Deny from all
+</IfModule>
