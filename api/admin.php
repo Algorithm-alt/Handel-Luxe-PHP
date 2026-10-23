@@ -1004,7 +1004,6 @@ function handleDeleteUser($id) {
 
 function handleExport($type) {
     $db = getDB();
-    $data = [];
     $headers = [];
     $filename = '';
 
@@ -1018,11 +1017,19 @@ function handleExport($type) {
         $headers = ['ID', 'Name', 'Price', 'Stock', 'Featured', 'Category', 'Created'];
         $filename = 'products';
     } elseif ($type === 'messages') {
-        $r = $db->query("SELECT * FROM handel_messages ORDER BY created_at DESC");
+        $r = $db->query("SELECT id, name, email, subject, message, is_read, created_at FROM handel_messages ORDER BY created_at DESC");
         $headers = ['ID', 'Name', 'Email', 'Subject', 'Message', 'Read', 'Created'];
         $filename = 'messages';
     } else {
         jsonResponse(['error' => 'Invalid export type'], 400);
+    }
+
+    $rows = [];
+    while ($row = $r->fetch_assoc()) $rows[] = $row;
+
+    if (($_GET['format'] ?? '') === 'print') {
+        renderExportPrint($type, $headers, $rows);
+        exit;
     }
 
     header('Content-Type: text/csv; charset=utf-8');
@@ -1036,11 +1043,103 @@ function handleExport($type) {
         if ($v !== '' && strpbrk($v[0], "=+-@\t\r") !== false) $v = "'" . $v;
         return $v;
     };
-    while ($row = $r->fetch_assoc()) {
+    foreach ($rows as $row) {
         fputcsv($output, array_map($csvSafe, array_values($row)));
     }
     fclose($output);
     exit;
+}
+
+function renderExportPrint($type, $headers, $rows) {
+    /* api/index.php sends application/json for every API route. This
+       endpoint renders a print-ready HTML document opened in a new tab,
+       so replace that header before any output is flushed. */
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    header('X-Robots-Tag: noindex, nofollow');
+
+    $titles = [
+        'orders' => 'Orders report',
+        'products' => 'Products report',
+        'messages' => 'Messages report'
+    ];
+    $keysByType = [
+        'orders' => ['id', 'customer', 'email', 'total', 'shipping_fee', 'delivery_zone', 'phone', 'payment_method', 'payment_status', 'status', 'created_at'],
+        'products' => ['id', 'name', 'price', 'stock', 'featured', 'category', 'created_at'],
+        'messages' => ['id', 'name', 'email', 'subject', 'message', 'is_read', 'created_at']
+    ];
+    $title = $titles[$type] ?? 'Export report';
+    $keys = $keysByType[$type] ?? [];
+    $zoneLabels = [];
+    if ($type === 'orders') {
+        foreach (getDeliveryZones() as $zone) $zoneLabels[$zone['id']] = $zone['label'];
+    }
+    $autoprint = (($_GET['autoprint'] ?? '1') !== '0');
+    $e = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+    $count = count($rows);
+    $recordLabel = $count . ' record' . ($count === 1 ? '' : 's');
+
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' .
+        '<meta name="viewport" content="width=device-width, initial-scale=1">' .
+        '<meta name="robots" content="noindex, nofollow">' .
+        '<title>' . $e($title) . ' - Handel Luxe GH</title>' .
+        '<style>' .
+        '*{box-sizing:border-box}body{margin:0;padding:24px;background:#fff;color:#0f172a;font:12px/1.45 Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' .
+        '.report-head{display:flex;justify-content:space-between;gap:24px;padding-bottom:14px;border-bottom:2px solid #2563eb;margin-bottom:18px}' .
+        '.brand{margin:0;color:#2563eb;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}' .
+        'h1{margin:5px 0 0;font-size:24px;letter-spacing:-.02em}.report-meta{text-align:right;color:#475569;font-size:11px;line-height:1.7;white-space:nowrap}' .
+        'table{width:100%;border-collapse:collapse}thead{display:table-header-group}th{background:#eff6ff;color:#1e3a8a;border:1px solid #dbeafe;padding:8px;font-size:10px;text-align:left;text-transform:uppercase;letter-spacing:.04em}' .
+        'td{border:1px solid #e2e8f0;padding:8px;vertical-align:top}tbody tr:nth-child(even){background:#f8fafc}tbody tr{break-inside:avoid;page-break-inside:avoid}' .
+        'td.cell-wrap{min-width:170px;overflow-wrap:anywhere}td.cell-message{min-width:240px;white-space:normal;overflow-wrap:anywhere}' .
+        '.report-foot{display:flex;justify-content:space-between;gap:20px;margin-top:16px;color:#64748b;font-size:10px}' .
+        '.no-print{display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px}.no-print a,.no-print button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 14px;border:1px solid #2563eb;border-radius:6px;background:#2563eb;color:#fff;font:600 12px Arial,Helvetica,sans-serif;text-decoration:none;cursor:pointer}.no-print a{background:#fff;color:#2563eb}' .
+        '@media print{@page{size:A4 landscape;margin:10mm}body{padding:0}.no-print{display:none}}' .
+        '</style></head><body>' .
+        '<div class="no-print"><a href="' . $e(base_url('/admin')) . '">Back to admin</a><button type="button" onclick="window.print()">Print / Save as PDF</button></div>' .
+        '<header class="report-head"><div><p class="brand">Handel Luxe GH</p><h1>' . $e($title) . '</h1></div>' .
+        '<div class="report-meta">Generated ' . $e(date('d M Y, H:i')) . '<br>' . $e($recordLabel) . '</div></header>' .
+        '<table><thead><tr>';
+    foreach ($headers as $header) echo '<th scope="col">' . $e($header) . '</th>';
+    echo '</tr></thead><tbody>';
+    if (!$rows) {
+        echo '<tr><td colspan="' . count($headers) . '" style="text-align:center;color:#64748b;padding:24px">No records found.</td></tr>';
+    } else {
+        foreach ($rows as $row) {
+            echo '<tr>';
+            foreach ($keys as $key) {
+                $value = $row[$key] ?? '';
+                $class = '';
+                if ($key === 'total' || $key === 'shipping_fee' || $key === 'price') {
+                    $value = 'GHS ' . number_format((float)$value, 2);
+                } elseif ($key === 'payment_method') {
+                    $value = $value === 'delivery' ? 'Pay on Delivery' : ($value === 'paystack' ? 'Paystack' : ucfirst((string)$value));
+                } elseif ($key === 'payment_status' || $key === 'status') {
+                    $value = ucfirst(str_replace('_', ' ', (string)$value));
+                } elseif ($key === 'delivery_zone') {
+                    $zoneId = (string)$value;
+                    $value = $zoneLabels[$zoneId] ?? ucwords(str_replace(['_', '-'], ' ', $zoneId));
+                } elseif ($key === 'featured' || $key === 'is_read') {
+                    $value = $value ? 'Yes' : 'No';
+                } elseif ($key === 'created_at') {
+                    $time = $value ? strtotime((string)$value) : false;
+                    $value = $time ? date('d M Y, H:i', $time) : (string)$value;
+                } elseif ($key === 'id') {
+                    $value = '#' . $value;
+                } elseif ($key === 'message') {
+                    $class = ' class="cell-message"';
+                } elseif ($key === 'subject') {
+                    $class = ' class="cell-wrap"';
+                }
+                if ($value === '' || $value === null) $value = '—';
+                echo '<td' . $class . '>' . ($key === 'message' ? nl2br($e($value)) : $e($value)) . '</td>';
+            }
+            echo '</tr>';
+        }
+    }
+    echo '</tbody></table><footer class="report-foot"><span>Handel Luxe GH · 0542332244 · 0549986486 · drdehandel@gmail.com</span><span>' . $e($recordLabel) . '</span></footer>';
+    echo '<script>window.addEventListener("load", function () {';
+    if ($autoprint) echo 'window.setTimeout(function () { window.print(); }, 350);';
+    echo '});</script></body></html>';
 }
 
 

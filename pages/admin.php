@@ -598,11 +598,26 @@ $noIndex = true; ?>
     };
   }
   function showExport() {
-    document.getElementById('admin-content').innerHTML = '<h2>Export Data</h2><p class="text-muted">Download selected store data as spreadsheets.</p>' +
+    const card = function(type, title, description, icon) {
+      return '<article class="export-card">' +
+        '<div class="export-card-head"><span class="export-card-icon" aria-hidden="true">' + icon + '</span>' +
+        '<div><h3>' + title + '</h3><p>' + description + '</p></div></div>' +
+        '<div class="export-card-actions">' +
+        '<a href="' + B + '/api/admin/export/' + type + '" class="btn btn-primary btn-sm">CSV / Excel</a>' +
+        '<a href="' + B + '/api/admin/export/' + type + '?format=print" target="_blank" rel="noopener" class="btn btn-outline btn-sm">Print / PDF</a>' +
+        '</div></article>';
+    };
+    const orderIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10a2 2 0 0 1 2 2v16l-3-2-2 2-2-2-3 2V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>';
+    const productIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>';
+    const messageIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+    document.getElementById('admin-content').innerHTML = '<h2>Export Data</h2>' +
+      '<p class="text-muted">Download a spreadsheet for analysis, or open a print-ready report and save it as a PDF.</p>' +
       '<div class="export-cards">' +
-      '<a href="' + B + '/api/admin/export/orders" class="btn btn-primary">Export Orders</a>' +
-      '<a href="' + B + '/api/admin/export/products" class="btn btn-primary">Export Products</a>' +
-      '<a href="' + B + '/api/admin/export/messages" class="btn btn-primary">Export Messages</a></div>';
+      card('orders', 'Orders', 'Customer, payment, delivery and status details.', orderIcon) +
+      card('products', 'Products', 'Prices, stock levels, categories and featured status.', productIcon) +
+      card('messages', 'Messages', 'Customer enquiries with read status and timestamps.', messageIcon) +
+      '</div>' +
+      '<p class="export-note">CSV files open in Excel or Google Sheets. PDF reports open in a new tab; choose <strong>Save as PDF</strong> in the print dialog.</p>';
   }
   function showNewsletter() {
     document.getElementById('admin-content').innerHTML = '<h2>Newsletter / Promo Email</h2><p class="text-muted">Send a marketing email only to subscribers who opted in on the newsletter form and have not unsubscribed. Registered customers are not included unless they also subscribed. Every send includes an unsubscribe link.</p>' +
