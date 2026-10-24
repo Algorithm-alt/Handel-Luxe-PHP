@@ -431,23 +431,28 @@ $fallbackZones = getDeliveryZones();
           amount: data.total * 100,
           currency: 'GHS',
           ref: data.reference,
-          onClose: async () => {
-            // Ask the server to verify and close out this attempt. If the
-            // customer actually paid before closing the iframe, take them to
-            // the success page; otherwise the pending order's stock is
-            // released instead of being held indefinitely.
-            let verified = null;
-            try {
-              verified = await fetchJSON(B + '/api/payments/verify?reference=' + encodeURIComponent(data.reference));
-            } catch (e) {}
-            if (verified && verified.success) {
-              window.location.href = B + '/payment/verify?reference=' + encodeURIComponent(data.reference);
-              return;
-            }
-            restoreButton();
-            showMsg('Payment cancelled. No charge was made and your cart is still saved.', 'error');
+          onClose: function () {
+            // Paystack Inline v1 rejects async functions as onClose (its
+            // isFunction() check tests for "[object Function]" exactly). Keep
+            // this a normal function and run the async verification inside.
+            (async function () {
+              // Ask the server to verify and close out this attempt. If the
+              // customer actually paid before closing the iframe, take them to
+              // the success page; otherwise the pending order's stock is
+              // released instead of being held indefinitely.
+              let verified = null;
+              try {
+                verified = await fetchJSON(B + '/api/payments/verify?reference=' + encodeURIComponent(data.reference));
+              } catch (e) {}
+              if (verified && verified.success) {
+                window.location.href = B + '/payment/verify?reference=' + encodeURIComponent(data.reference);
+                return;
+              }
+              restoreButton();
+              showMsg('Payment cancelled. No charge was made and your cart is still saved.', 'error');
+            })();
           },
-          callback: (r) => { window.location.href = B + '/payment/verify?reference=' + r.reference; }
+          callback: function (r) { window.location.href = B + '/payment/verify?reference=' + r.reference; }
         }).openIframe();
       } catch (err) {
         showMsg(friendlyError(err.message), 'error');
