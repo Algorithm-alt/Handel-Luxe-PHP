@@ -328,7 +328,7 @@ function setAuthLinks(u, opts) {
         bottomLabel.textContent = 'Admin';
       } else {
         bottomAccount.href = BASE + '/profile';
-        bottomLabel.textContent = 'Account';
+        bottomLabel.textContent = String(u.name || '').trim().split(/\s+/)[0] || 'Account';
       }
     } else {
       bottomAccount.href = BASE + '/login';
