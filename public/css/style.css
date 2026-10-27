@@ -330,6 +330,9 @@ h3 { font-size: 1.25rem; font-weight: 600; }
   overflow: hidden;
 }
 @media (max-width: 768px) {
+  .nav-links.account-menu-open { visibility: hidden; z-index: 1001; }
+  .nav-links.account-menu-open .user-dropdown-menu { visibility: visible; }
+  .main-nav.account-menu-open { z-index: 1000; }
   .user-dropdown-menu {
     position: fixed;
     top: auto;
@@ -3583,4 +3586,3 @@ html[data-theme="dark"] .admin-sidebar .admin-back:hover { color: #fff; }
   .fragrance-request { padding: var(--space-6); }
   #fragrance-request-modal .modal { padding: var(--space-5); }
 }
-

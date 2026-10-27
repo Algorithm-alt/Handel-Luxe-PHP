@@ -346,11 +346,33 @@ function setAuthLinks(u, opts) {
   var adminItem = (u.role === 'admin' && !opts.hideAdmin) ? ' <a href="' + BASE + '/admin">Admin Dashboard</a>' : '';
   el.innerHTML = '<div class="user-dropdown"><span class="user-name btn btn-primary btn-sm">' + escapeHtml(shortName) + '</span><div class="user-dropdown-menu"><span class="dropdown-title">' + escapeHtml(shortName) + '</span>' + adminItem + '<a href="' + BASE + '/profile">My Profile</a><a href="' + BASE + '/orders">My Orders</a><a href="' + BASE + '/track-order">Track a Guest Order</a><a href="#" class="logout-link" onclick="confirmLogout()">Logout</a></div></div>';
   var dd = el.querySelector('.user-dropdown');
+  var navLinks = document.querySelector('.nav-links');
+  var hamburger = document.querySelector('.hamburger');
+  var mainNav = document.querySelector('.main-nav');
   dd.querySelector('.user-name').addEventListener('click', function(e) {
     e.stopPropagation();
-    dd.classList.toggle('open');
+    var opening = !dd.classList.contains('open');
+    dd.classList.toggle('open', opening);
+    if (window.matchMedia('(max-width: 768px)').matches && navLinks && navLinks.classList.contains('open')) {
+      if (opening) {
+        navLinks.classList.add('account-menu-open');
+        if (mainNav) mainNav.classList.add('account-menu-open');
+        if (hamburger) hamburger.classList.remove('active');
+      } else {
+        navLinks.classList.remove('open', 'account-menu-open');
+        if (mainNav) mainNav.classList.remove('account-menu-open');
+        if (hamburger) hamburger.classList.remove('active');
+      }
+    }
   });
-  document.addEventListener('click', function() { dd.classList.remove('open'); });
+  document.addEventListener('click', function() {
+    dd.classList.remove('open');
+    if (navLinks && navLinks.classList.contains('account-menu-open')) {
+      navLinks.classList.remove('open', 'account-menu-open');
+      if (mainNav) mainNav.classList.remove('account-menu-open');
+      if (hamburger) hamburger.classList.remove('active');
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -382,8 +404,19 @@ document.addEventListener('DOMContentLoaded', function() {
   var ham = document.querySelector('.hamburger');
   var navLinks = document.querySelector('.nav-links');
   if (ham && navLinks) {
-    ham.addEventListener('click', function() { ham.classList.toggle('active'); navLinks.classList.toggle('open'); });
-    navLinks.querySelectorAll('a').forEach(function(a) { a.addEventListener('click', function() { ham.classList.remove('active'); navLinks.classList.remove('open'); }); });
+    ham.addEventListener('click', function() {
+      ham.classList.toggle('active');
+      navLinks.classList.toggle('open');
+      navLinks.classList.remove('account-menu-open');
+      var mainNav = document.querySelector('.main-nav');
+      if (mainNav) mainNav.classList.remove('account-menu-open');
+    });
+    navLinks.querySelectorAll('a').forEach(function(a) { a.addEventListener('click', function() {
+      ham.classList.remove('active');
+      navLinks.classList.remove('open', 'account-menu-open');
+      var mainNav = document.querySelector('.main-nav');
+      if (mainNav) mainNav.classList.remove('account-menu-open');
+    }); });
   }
 });
 
@@ -562,4 +595,3 @@ function showLoading(el) {
   if (typeof el === 'string') el = document.querySelector(el);
   if (el) el.innerHTML = '<div class="loading-placeholder"><div class="spinner"></div><p>Loading...</p></div>';
 }
-

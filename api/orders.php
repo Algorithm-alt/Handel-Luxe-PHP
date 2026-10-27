@@ -147,7 +147,9 @@ function handlePlaceOrder() {
 function handleListOrders() {
     requireAuth();
     $db = getDB();
-    $stmt = $db->prepare("SELECT * FROM handel_orders WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt = $db->prepare("SELECT * FROM handel_orders
+        WHERE user_id = ? AND (payment_method <> 'paystack' OR payment_status = 'success')
+        ORDER BY created_at DESC");
     $stmt->bind_param('i', $_SESSION['user']['id']);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -174,7 +176,9 @@ function handleGuestLookup() {
     if (!$id) jsonResponse(['error' => 'Order ID is required'], 400);
 
     $db = getDB();
-    $stmt = $db->prepare("SELECT * FROM handel_orders WHERE id = ? AND guest_email = ? AND user_id IS NULL");
+    $stmt = $db->prepare("SELECT * FROM handel_orders
+        WHERE id = ? AND guest_email = ? AND user_id IS NULL
+          AND (payment_method <> 'paystack' OR payment_status = 'success')");
     $stmt->bind_param('is', $id, $email);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -229,4 +233,3 @@ function handleOrderDetail($id) {
     $order['items'] = $items;
     jsonResponse($order);
 }
-

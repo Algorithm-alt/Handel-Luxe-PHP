@@ -484,7 +484,7 @@ $fallbackZones = getDeliveryZones();
       (isGuest ? ' <a href="' + waConfirmHref(o) + '" target="_blank" rel="noopener" class="btn btn-outline">Confirm on WhatsApp</a>' : '') +
       ' <a href="' + B + '/products" class="btn btn-outline">Continue Shopping</a>' +
       '</div></div>';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   /* Pre-typed WhatsApp confirmation for guests. Built from the cart we

@@ -332,20 +332,16 @@ $noIndex = true; ?>
   }
   function renderAdminOrders(orders) {
     const paidCount = orders.filter(o => o.payment_status === 'success').length;
-    const pendingPayCount = orders.filter(o => o.payment_method === 'paystack' && o.payment_status === 'pending').length;
-    const failedCount = orders.filter(o => o.payment_status === 'failed').length;
     document.getElementById('admin-content').innerHTML = '<h2>Manage Orders</h2>' +
       '<div class="filter-bar">' +
       '<button class="btn btn-outline btn-sm" onclick="filterOrders(\'all\')">All (' + orders.length + ')</button>' +
-      '<button class="btn btn-outline btn-sm btn-success" onclick="filterOrders(\'paid\')">Paid (' + paidCount + ')</button>' +
-      '<button class="btn btn-outline btn-sm btn-warning" onclick="filterOrders(\'pending_pay\')">Awaiting Payment (' + pendingPayCount + ')</button>' +
-      '<button class="btn btn-outline btn-sm btn-danger" onclick="filterOrders(\'failed\')">Failed (' + failedCount + ')</button></div>' +
+      '<button class="btn btn-outline btn-sm btn-success" onclick="filterOrders(\'paid\')">Paid (' + paidCount + ')</button></div>' +
       '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Method</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>' +
       '<tbody id="admin-orders-tbody">' + renderOrderRows(orders) + '</tbody></table></div>';
   }
   function renderOrderRows(orders) {
     return orders.map(o => '<tr><td>#' + o.id + '</td><td>' + escapeHtml(o.customer_name) + '<br><small class="text-muted">' + escapeHtml(o.customer_email) + '</small></td><td>' + formatPrice(o.total) + '</td>' +
-      '<td><span class="badge badge-gray">' + (o.payment_method === 'delivery' ? 'Delivery' : 'Paystack') + '</span></td>' +
+      '<td><span class="badge badge-gray show">' + (o.payment_method === 'delivery' ? 'Delivery' : 'Paystack') + '</span></td>' +
       '<td><span class="status status-' + (o.payment_status === 'success' ? 'delivered' : o.payment_status === 'failed' ? 'cancelled' : 'pending') + '">' + (o.payment_status === 'success' ? 'Paid' : o.payment_status === 'failed' ? 'Failed' : 'Pending') + '</span></td>' +
       '<td><span class="status status-' + o.status + '">' + o.status + '</span></td><td>' + new Date(o.created_at).toLocaleDateString() + '</td>' +
       '<td><div class="cell-actions"><button class="btn btn-primary btn-sm" onclick="viewOrderDetail(' + o.id + ')">View</button> ' +
@@ -680,7 +676,7 @@ $noIndex = true; ?>
       '</div></div>' +
       '<div style="background:var(--surface);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;">' +
       '<h3 style="margin-bottom:15px;">Top Selling Fragrances</h3>' +
-      (s.top_sellers && s.top_sellers.length ? '<table class="admin-table"><thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead><tbody>' + s.top_sellers.map(t => '<tr><td>' + escapeHtml(t.name) + '</td><td>' + t.qty + '</td><td>' + formatPrice(t.total) + '</td></tr>').join('') + '</tbody></table>' : '<p style="color:var(--text-muted);">No sales yet.</p>') +
+      (s.top_sellers && s.top_sellers.length ? '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead><tbody>' + s.top_sellers.map(t => '<tr><td>' + escapeHtml(t.name) + '</td><td>' + t.qty + '</td><td>' + formatPrice(t.total) + '</td></tr>').join('') + '</tbody></table></div>' : '<p style="color:var(--text-muted);">No sales yet.</p>') +
       '</div>';
   }
 

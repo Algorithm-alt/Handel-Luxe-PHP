@@ -137,17 +137,20 @@ function handleStats() {
 
     $r = $db->query("SELECT COUNT(*) as count FROM handel_users"); $stats['users'] = $r->fetch_assoc()['count'];
     $r = $db->query("SELECT COUNT(*) as count FROM handel_products"); $stats['products'] = $r->fetch_assoc()['count'];
-    $r = $db->query("SELECT COUNT(*) as count FROM handel_orders"); $stats['orders'] = $r->fetch_assoc()['count'];
-    $r = $db->query("SELECT COALESCE(SUM(total), 0) as total FROM handel_orders WHERE status != 'cancelled'"); $stats['revenue'] = $r->fetch_assoc()['total'];
+    $r = $db->query("SELECT COUNT(*) as count FROM handel_orders
+        WHERE payment_method <> 'paystack' OR payment_status = 'success'"); $stats['orders'] = $r->fetch_assoc()['count'];
+    $r = $db->query("SELECT COALESCE(SUM(total), 0) as total FROM handel_orders WHERE status = 'delivered'"); $stats['revenue'] = $r->fetch_assoc()['total'];
     $r = $db->query("SELECT COUNT(*) as count FROM handel_orders WHERE payment_method = 'paystack' AND payment_status = 'pending'"); $stats['pending_payments'] = $r->fetch_assoc()['count'];
     $r = $db->query("SELECT COALESCE(SUM(stock), 0) as total FROM handel_products"); $stats['total_stock'] = $r->fetch_assoc()['total'];
-    $r = $db->query("SELECT COUNT(*) as count FROM handel_orders WHERE DATE(created_at) = CURDATE()"); $stats['orders_today'] = $r->fetch_assoc()['count'];
-    $r = $db->query("SELECT COALESCE(SUM(total), 0) as total FROM handel_orders WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'"); $stats['revenue_today'] = $r->fetch_assoc()['total'];
+    $r = $db->query("SELECT COUNT(*) as count FROM handel_orders
+        WHERE DATE(created_at) = CURDATE() AND (payment_method <> 'paystack' OR payment_status = 'success')"); $stats['orders_today'] = $r->fetch_assoc()['count'];
+    $r = $db->query("SELECT COALESCE(SUM(total), 0) as total FROM handel_orders WHERE DATE(created_at) = CURDATE() AND status = 'delivered'"); $stats['revenue_today'] = $r->fetch_assoc()['total'];
     $r = $db->query("SELECT COUNT(*) as count FROM handel_products WHERE stock <= 5"); $stats['low_stock'] = $r->fetch_assoc()['count'];
 
     $r = $db->query("SELECT COALESCE(p.name, oi.product_name, 'Deleted product') AS name, p.image, SUM(oi.quantity) as qty, SUM(oi.quantity * oi.price) as total
         FROM handel_order_items oi LEFT JOIN handel_products p ON oi.product_id = p.id
-        JOIN handel_orders o ON o.id = oi.order_id WHERE o.status != 'cancelled'
+        JOIN handel_orders o ON o.id = oi.order_id
+        WHERE o.status != 'cancelled' AND (o.payment_method <> 'paystack' OR o.payment_status = 'success')
         GROUP BY COALESCE(p.name, oi.product_name, 'Deleted product'), p.image ORDER BY qty DESC LIMIT 5");
     $stats['top_sellers'] = [];
     while ($row = $r->fetch_assoc()) {
@@ -156,12 +159,14 @@ function handleStats() {
     }
 
     $r = $db->query("SELECT o.id, o.total, o.payment_method, o.status, o.created_at, COALESCE(u.name, o.guest_name) as customer_name
-        FROM handel_orders o LEFT JOIN handel_users u ON o.user_id = u.id ORDER BY o.created_at DESC LIMIT 8");
+        FROM handel_orders o LEFT JOIN handel_users u ON o.user_id = u.id
+        WHERE o.payment_method <> 'paystack' OR o.payment_status = 'success'
+        ORDER BY o.created_at DESC LIMIT 8");
     $stats['recent_orders'] = [];
     while ($row = $r->fetch_assoc()) $stats['recent_orders'][] = $row;
 
     $r = $db->query("SELECT DATE(created_at) as day, COALESCE(SUM(total), 0) as total FROM handel_orders
-        WHERE status != 'cancelled' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        WHERE status = 'delivered' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         GROUP BY DATE(created_at) ORDER BY day ASC");
     $stats['daily_revenue'] = [];
     while ($row = $r->fetch_assoc()) $stats['daily_revenue'][] = $row;
@@ -172,7 +177,9 @@ function handleStats() {
 function handleAdminOrders() {
     $db = getDB();
     $r = $db->query("SELECT o.*, COALESCE(u.name, o.guest_name) as customer_name, COALESCE(u.email, o.guest_email) as customer_email
-        FROM handel_orders o LEFT JOIN handel_users u ON o.user_id = u.id ORDER BY o.created_at DESC");
+        FROM handel_orders o LEFT JOIN handel_users u ON o.user_id = u.id
+        WHERE o.payment_method <> 'paystack' OR o.payment_status = 'success'
+        ORDER BY o.created_at DESC");
     $orders = [];
     while ($row = $r->fetch_assoc()) $orders[] = $row;
     jsonResponse($orders);
@@ -758,7 +765,8 @@ function handleNotifications() {
     $unread = $r->fetch_assoc()['count'];
     $r = $db->query("SELECT COUNT(*) as count FROM handel_orders WHERE payment_status = 'pending'");
     $pendingPay = $r->fetch_assoc()['count'];
-    $r = $db->query("SELECT COUNT(*) as count FROM handel_orders WHERE status = 'pending'");
+    $r = $db->query("SELECT COUNT(*) as count FROM handel_orders WHERE status = 'pending'
+        AND (payment_method <> 'paystack' OR payment_status = 'success')");
     $pendingOrders = $r->fetch_assoc()['count'];
     jsonResponse([
         'unread_messages' => (int)$unread,
@@ -937,7 +945,9 @@ function handleUserOrders($userId) {
     $stmt->close();
     if (!$user) jsonResponse(['error' => 'User not found'], 404);
 
-    $stmt = $db->prepare("SELECT id, total, shipping_fee, delivery_zone, status, payment_status, payment_method, created_at FROM handel_orders WHERE user_id = ? ORDER BY created_at DESC");
+    $stmt = $db->prepare("SELECT id, total, shipping_fee, delivery_zone, status, payment_status, payment_method, created_at FROM handel_orders
+        WHERE user_id = ? AND (payment_method <> 'paystack' OR payment_status = 'success')
+        ORDER BY created_at DESC");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $r = $stmt->get_result();
@@ -1009,7 +1019,9 @@ function handleExport($type) {
 
     if ($type === 'orders') {
         $r = $db->query("SELECT o.id, COALESCE(u.name, o.guest_name) as customer, COALESCE(u.email, o.guest_email) as email, o.total, o.shipping_fee, o.delivery_zone, o.phone, o.payment_method, o.payment_status, o.status, o.created_at
-            FROM handel_orders o LEFT JOIN handel_users u ON o.user_id = u.id ORDER BY o.created_at DESC");
+            FROM handel_orders o LEFT JOIN handel_users u ON o.user_id = u.id
+            WHERE o.payment_method <> 'paystack' OR o.payment_status = 'success'
+            ORDER BY o.created_at DESC");
         $headers = ['ID', 'Customer', 'Email', 'Total', 'Shipping Fee', 'Delivery Zone', 'Phone', 'Payment Method', 'Payment Status', 'Status', 'Date'];
         $filename = 'orders';
     } elseif ($type === 'products') {
